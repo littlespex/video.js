@@ -44,7 +44,7 @@ describe('MediaAdsExtension', () => {
     expect(extension.session!.primaryElement).toBe(video);
   });
 
-  it('forwards the enforce-restrictions attribute to the extension', () => {
+  it('forwards the enforce-restrictions and timeline attributes to the extension', () => {
     const { provider, el } = setup();
 
     el.setAttribute('enforce-restrictions', '');
@@ -55,6 +55,21 @@ describe('MediaAdsExtension', () => {
     expect(extension.enforceRestrictions).toBe(true);
     expect(extension.timeline).toBe('vod');
     expect(el.enforceRestrictions).toBe(true);
+  });
+
+  it('turns enforcement off with enforce-restrictions="false" and back on when the attribute goes', () => {
+    const { provider, el } = setup();
+    const extension = provider.extensions.get(AdsExtension)!;
+
+    el.setAttribute('enforce-restrictions', 'false');
+    expect(extension.enforceRestrictions).toBe(false);
+    expect(el.enforceRestrictions).toBe(false);
+
+    el.removeAttribute('enforce-restrictions');
+    expect(extension.enforceRestrictions).toBe(true);
+
+    el.enforceRestrictions = false;
+    expect(extension.enforceRestrictions).toBe(false);
   });
 
   it('forwards the adapters property to the extension', () => {

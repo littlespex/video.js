@@ -9,6 +9,13 @@ describe('decodeEnvelope', () => {
     expect(decodeEnvelope(encodeEnvelope(envelope))).toEqual(envelope);
   });
 
+  it('decodes URL-safe base64 without padding and non-ASCII text', () => {
+    const envelope = { type: 'slot' as const, payload: [{ start: 0, duration: 10, title: 'Café ★ 広告' }] };
+    const urlSafe = encodeEnvelope(envelope).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    expect(decodeEnvelope(urlSafe)).toEqual(envelope);
+  });
+
   it('accepts raw JSON and a pre-parsed object', () => {
     const json = '{"type":"slot","payload":[]}';
 

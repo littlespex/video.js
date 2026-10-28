@@ -21,6 +21,8 @@ import { UIElement } from '../ui-element';
  *
  * Unlike the chapters part, markers do not partition the track and are not seek targets: ad markers restrict `jump`, so
  * the element is inert.
+ *
+ * @internal
  */
 export class TimeSliderMarkersElement extends UIElement {
   static readonly tagName = 'media-time-slider-markers';

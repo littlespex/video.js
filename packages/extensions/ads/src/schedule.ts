@@ -6,7 +6,7 @@ import { interstitialData } from './interstitial';
  * it; regions whose start is not yet known are appended in arrival order. Completed regions stay for history and for
  * `played` checks.
  *
- * @experimental
+ * @internal
  */
 export interface InterstitialSchedule {
   readonly items: ReadonlyArray<Interstitial>;
@@ -104,6 +104,16 @@ export class ScheduleImpl implements InterstitialSchedule {
     if (this.#current === item) this.#current = null;
 
     return true;
+  }
+
+  /** Drop every region. Returns them so the session can announce the removal. */
+  clear(): InterstitialImpl[] {
+    const removed = this.#items.splice(0);
+
+    this.#byId.clear();
+    this.#current = null;
+
+    return removed;
   }
 
   /** Re-sort after a `startTime` change. Known starts first by time, then unknown starts in arrival order. */

@@ -31,13 +31,16 @@ time. Compose `adsFeature` into the player to read `selectAds` state (break and 
 
 ```ts
 import { adsFeature, selectAds } from '@videojs/ads';
-import { createPlayer, videoFeatures } from '@videojs/html';
+import { videoFeatures } from '@videojs/core/dom';
+import { createPlayer } from '@videojs/html';
 
 const { PlayerElement } = createPlayer({ features: [...videoFeatures, adsFeature] });
 ```
 
-Analytics subscribes to the session itself (`element.extension.session`, or `media.ads` on the store's media) for
-`tracking`, `slotprogress` and the other events in `AdSessionEventMap`.
+Analytics subscribes to the session itself (the `session` property of `<media-ads>`, or `media.ads` on the store's
+media) for `tracking`, `slotprogress` and the other events in `AdSessionEventMap`. Set `beacons` to a
+`DefaultBeaconSender` to have due records requested over HTTP; it skips records that fall due while a break plays again
+unless constructed with `replays: true`.
 
 ## License
 

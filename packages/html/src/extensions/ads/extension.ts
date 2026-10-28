@@ -1,4 +1,5 @@
 import { AdsExtension, type AdsExtensionProps, type AdAdapter, type BeaconSender } from '@videojs/ads';
+import { isString } from '@videojs/utils/predicate';
 
 import { PlayerExtensionElement } from '../player-extension-element';
 
@@ -9,7 +10,8 @@ import { PlayerExtensionElement } from '../player-extension-element';
  * runs the ad adapters (the SVTA2053 metadata-track adapter by default), and presents content time on the player clock
  * so the stock time slider and time display hide stitched ad time.
  *
- * Adapters and the beacon sender are object-valued, so set them as properties rather than attributes.
+ * Adapters and the beacon sender are object-valued, so set them as properties rather than attributes. Enforcement is on
+ * by default, so the attribute is enumerated rather than boolean: `enforce-restrictions="false"` turns it off.
  *
  * @example
  *   ```html
@@ -18,12 +20,14 @@ import { PlayerExtensionElement } from '../player-extension-element';
  *   <media-ads></media-ads>
  *   </video-player>
  *   ```;
+ *
+ * @internal
  */
 export class MediaAdsExtension extends PlayerExtensionElement<AdsExtension> {
   static readonly tagName = 'media-ads';
 
   static override properties = {
-    enforceRestrictions: { type: Boolean, attribute: 'enforce-restrictions' },
+    enforceRestrictions: { type: String, attribute: 'enforce-restrictions' },
     timeline: { type: String },
   };
 
@@ -54,13 +58,16 @@ export class MediaAdsExtension extends PlayerExtensionElement<AdsExtension> {
     this.extension.beacons = value;
   }
 
-  /** Whether the session blocks restricted seeks. Defaults to `true`. */
+  /**
+   * Whether the session blocks restricted seeks. Defaults to `true`. The attribute form accepts `"false"` to turn
+   * enforcement off; any other value, including an empty one, keeps it on.
+   */
   get enforceRestrictions(): boolean {
     return this.extension.enforceRestrictions;
   }
 
-  set enforceRestrictions(value: boolean) {
-    this.extension.enforceRestrictions = value;
+  set enforceRestrictions(value: boolean | string | null) {
+    this.extension.enforceRestrictions = isString(value) ? value.trim().toLowerCase() !== 'false' : value !== false;
   }
 
   /** Forces the time mapping (`vod` or `live`). Defaults to detection from the primary element. */

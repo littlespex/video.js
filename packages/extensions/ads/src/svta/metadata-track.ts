@@ -5,7 +5,7 @@ import { SVTA_ATTRIBUTE } from './envelope';
  * date range as one metadata cue per attribute, each sharing the range's `id`; this gathers them back into the
  * attribute map, timing and span the adapter reads.
  *
- * @experimental
+ * @internal
  */
 export interface DateRangeCueGroup {
   id: string;
@@ -56,24 +56,35 @@ function readAttributes(cue: MetadataCueLike): Record<string, unknown> {
   return {};
 }
 
-/** Group a metadata track's cues by date-range id, keeping the earliest start and latest finite end. */
+/** Hls.js caps an open-ended cue at `Number.MAX_VALUE` where `VTTCue` rejects `Infinity`; both mean "no known end". */
+function cueEnd(endTime: number): number {
+  return endTime >= Number.MAX_VALUE ? Number.POSITIVE_INFINITY : endTime;
+}
+
+/**
+ * Group a metadata track's cues by date-range id, keeping the earliest start and latest finite end. A range with no
+ * known end has `endTime: Infinity`.
+ *
+ * @internal
+ */
 export function groupDateRangeCues(cues: Iterable<MetadataCueLike>): DateRangeCueGroup[] {
   const groups = new Map<string, DateRangeCueGroup>();
 
   for (const cue of cues) {
     if (!cue.id) continue;
 
+    const endTime = cueEnd(cue.endTime);
     const group = groups.get(cue.id) ?? {
       id: cue.id,
       startTime: cue.startTime,
-      endTime: cue.endTime,
+      endTime,
       attributes: {},
     };
 
     group.startTime = Math.min(group.startTime, cue.startTime);
 
-    if (Number.isFinite(cue.endTime)) {
-      group.endTime = Number.isFinite(group.endTime) ? Math.max(group.endTime, cue.endTime) : cue.endTime;
+    if (Number.isFinite(endTime)) {
+      group.endTime = Number.isFinite(group.endTime) ? Math.max(group.endTime, endTime) : endTime;
     }
 
     Object.assign(group.attributes, readAttributes(cue));
@@ -88,13 +99,23 @@ export function hasSvtaSignal(group: DateRangeCueGroup): boolean {
   return SVTA_ATTRIBUTE in group.attributes;
 }
 
-/** A text track as this adapter consumes it: metadata cues plus a `cuechange` notification. */
+/**
+ * A text track as this adapter consumes it: metadata cues plus a `cuechange` notification.
+ *
+ * @internal
+ */
 export interface MetadataTrackLike extends EventTarget {
   readonly kind?: string;
+  /** `disabled` tracks expose no cues; the adapter sets such a track to `hidden`. */
+  mode?: string;
   readonly cues: ArrayLike<MetadataCueLike> | null;
 }
 
-/** A host from which a metadata track can be found, such as the primary media element. */
+/**
+ * A host from which a metadata track can be found, such as the primary media element.
+ *
+ * @internal
+ */
 export interface MetadataTrackHost {
   readonly textTracks?: {
     readonly length: number;
@@ -104,7 +125,11 @@ export interface MetadataTrackHost {
   } & Partial<EventTarget>;
 }
 
-/** The first `metadata` text track on a host, or `null`. */
+/**
+ * The first `metadata` text track on a host, or `null`.
+ *
+ * @internal
+ */
 export function findMetadataTrack(host: MetadataTrackHost): MetadataTrackLike | null {
   const tracks = host.textTracks;
   if (!tracks) return null;

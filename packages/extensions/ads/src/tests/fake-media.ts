@@ -10,6 +10,7 @@ export class FakeMedia extends EventTarget {
   muted = false;
   currentSrc = 'https://example.com/stream.m3u8';
   seekableRanges: [number, number][] = [];
+  bufferedRanges: [number, number][] = [];
 
   get currentTime(): number {
     return this.#currentTime;
@@ -21,13 +22,11 @@ export class FakeMedia extends EventTarget {
   }
 
   get seekable(): TimeRanges {
-    const ranges = this.seekableRanges;
+    return toTimeRanges(this.seekableRanges);
+  }
 
-    return {
-      length: ranges.length,
-      start: (index: number) => ranges[index]![0],
-      end: (index: number) => ranges[index]![1],
-    } as TimeRanges;
+  get buffered(): TimeRanges {
+    return toTimeRanges(this.bufferedRanges);
   }
 
   /** Move the clock forward as playback would, in steps, dispatching `timeupdate` at each. */
@@ -73,4 +72,12 @@ export class FakeMedia extends EventTarget {
   asElement(): HTMLMediaElement {
     return this as unknown as HTMLMediaElement;
   }
+}
+
+function toTimeRanges(ranges: [number, number][]): TimeRanges {
+  return {
+    length: ranges.length,
+    start: (index: number) => ranges[index]![0],
+    end: (index: number) => ranges[index]![1],
+  } as TimeRanges;
 }

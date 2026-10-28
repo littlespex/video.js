@@ -3,7 +3,7 @@ import type { TrackingEventType } from './enums';
 /**
  * SVTA2053 `AdIdentifier`. `scheme` is a URI naming the authority (for example Ad-ID).
  *
- * @experimental
+ * @internal
  */
 export interface AdIdentifier {
   scheme: string;
@@ -13,7 +13,7 @@ export interface AdIdentifier {
 /**
  * SVTA2053 `MediaReference`. `type` is an IANA media type.
  *
- * @experimental
+ * @internal
  */
 export interface MediaReference {
   id: string;
@@ -25,7 +25,7 @@ export interface MediaReference {
  * SVTA2053 `TrackingEvent`. `offset` is seconds relative to the containing slot or interstitial start. When `null`,
  * timing is implied by `type`.
  *
- * @experimental
+ * @internal
  */
 export interface TrackingEvent {
   type: TrackingEventType;
@@ -36,7 +36,7 @@ export interface TrackingEvent {
 /**
  * SVTA2053 `Verification`. Opaque to the player; handed to the OMID or vendor SDK.
  *
- * @experimental
+ * @internal
  */
 export interface Verification {
   vendor: string;
@@ -47,7 +47,7 @@ export interface Verification {
 /**
  * When and how the skip control appears.
  *
- * @experimental
+ * @internal
  */
 export interface SkipControl {
   /** Seconds into the slot before the control may show. */

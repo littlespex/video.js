@@ -75,5 +75,7 @@ const timelineMarkersAnchor = definePlayerFeature({
 /**
  * Select the generic timeline markers any feature may contribute (ad breaks today). The result is `undefined` when no
  * feature contributes markers, so a slider's markers part reads it with a fallback and renders nothing.
+ *
+ * @internal
  */
 export const selectTimelineMarkers = createSelector(timelineMarkersAnchor);

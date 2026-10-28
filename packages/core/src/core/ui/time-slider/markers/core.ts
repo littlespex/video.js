@@ -4,7 +4,7 @@ import { clamp } from '@videojs/utils/number';
  * A point or span drawn on the time slider, in content time. The ads feature contributes one per ad break; other
  * features (chapters, cuepoints) may contribute to the same array later, which is why `kind` is an open union.
  *
- * @experimental
+ * @internal
  */
 export interface TimelineMarker {
   /** Stable identity used by platform renderers. */
@@ -23,7 +23,7 @@ export interface TimelineMarker {
  * Generic timeline-marker state contributed to the player store. A feature adds its markers to `timelineMarkers`; the
  * time slider's markers part renders them.
  *
- * @experimental
+ * @internal
  */
 export interface TimelineMarkersState {
   timelineMarkers: ReadonlyArray<TimelineMarker>;
@@ -32,7 +32,7 @@ export interface TimelineMarkersState {
 /**
  * A marker positioned against the slider domain.
  *
- * @experimental
+ * @internal
  */
 export interface TimelineMarkerGeometry extends TimelineMarker {
   /** Stable key for the renderer; the marker id. */

@@ -265,6 +265,23 @@ describe('createAdSession', () => {
       ]);
     });
 
+    it('fires offsets that fall due in the last window before a slot ends', () => {
+      const { host, media, session } = setup();
+      const log = recordEvents(session, ['tracking']);
+
+      host.addInterstitial(region('a', 10, 10));
+      host.resolve('a', slots(2, 5, { tracking: [record('progress', 4.9), record('complete')] }));
+
+      media.advance(20);
+
+      expect(log).toEqual([
+        'tracking(a:0):progress',
+        'tracking(a:0):complete',
+        'tracking(a:1):progress',
+        'tracking(a:1):complete',
+      ]);
+    });
+
     it('does not fire offset records across a seek into a slot', () => {
       const { host, media, session } = setup();
       const log = recordEvents(session, ['tracking', 'slotprogress']);
@@ -495,12 +512,116 @@ describe('createAdSession', () => {
       expect(session.requestSeek(50)).toBe(50);
     });
 
-    it('snaps a seek into the middle of an unplayed jump region to its start', () => {
-      const { host, session } = setup();
+    it('snaps a seek into the middle of an unplayed jump region to its start, without a snapback into it', () => {
+      const { host, media, session } = setup();
+      const log = recordEvents(session, ['seekblocked', 'snapback', 'interstitialstart', 'interstitialend']);
+      const item = host.addInterstitial(region('a', 10, 10, { restrictions: ['jump'] }));
+
+      expect(session.requestSeek(15)).toBe(10);
+      media.settle();
+
+      media.advance(25);
+
+      expect(media.currentTime).toBe(25);
+      expect(item.played).toBe(true);
+      expect(log).toEqual(['seekblocked(a)', 'interstitialstart(a)', 'interstitialend(a):completed']);
+    });
+
+    it('treats a seek to the start of an unplayed jump region as a seek into it', () => {
+      const { host, media, session } = setup();
+      const log = recordEvents(session, ['seekblocked', 'snapback', 'interstitialstart', 'interstitialend']);
 
       host.addInterstitial(region('a', 10, 10, { restrictions: ['jump'] }));
 
-      expect(session.requestSeek(15)).toBe(10);
+      expect(session.requestSeek(10)).toBe(10);
+      media.settle();
+      media.advance(25);
+
+      expect(media.currentTime).toBe(25);
+      expect(log).toEqual(['interstitialstart(a)', 'interstitialend(a):completed']);
+    });
+
+    it('keeps the held seek when the active region it seeks out of ends seeked', () => {
+      const { host, media, session } = setup();
+      const log = recordEvents(session, ['seekblocked', 'snapback', 'interstitialstart', 'interstitialend']);
+      const pre = host.addInterstitial(region('pre', 0, 15, { restrictions: ['jump'] }));
+      const mid = host.addInterstitial(region('mid', 45, 15, { restrictions: ['jump'] }));
+
+      media.advance(2);
+      expect(session.schedule.current).toBe(pre);
+
+      // Seeking out of the active, unplayed pre-roll toward a point past the mid-roll redirects to the mid-roll.
+      expect(session.requestSeek(80)).toBe(45);
+      media.settle();
+      media.advance(70);
+
+      expect(media.currentTime).toBe(80);
+      expect(pre.played).toBe(false);
+      expect(mid.played).toBe(true);
+      expect(log).toEqual([
+        'interstitialstart(pre)',
+        'seekblocked(mid)',
+        'interstitialend(pre):seeked',
+        'interstitialstart(mid)',
+        'interstitialend(mid):completed',
+        'snapback(mid)',
+      ]);
+    });
+
+    it('hands the held seek to a jump region that starts where the last one ended', () => {
+      const { host, media, session } = setup();
+      const log = recordEvents(session, ['seekblocked', 'snapback', 'interstitialstart', 'interstitialend']);
+      const a = host.addInterstitial(region('a', 10, 10, { restrictions: ['jump'] }));
+      const b = host.addInterstitial(region('b', 20, 10, { restrictions: ['jump'] }));
+
+      expect(session.requestSeek(50)).toBe(10);
+      media.settle();
+      media.advance(35);
+
+      expect(media.currentTime).toBe(50);
+      expect(a.played).toBe(true);
+      expect(b.played).toBe(true);
+      expect(log).toEqual([
+        'seekblocked(a)',
+        'interstitialstart(a)',
+        'interstitialend(a):completed',
+        'interstitialstart(b)',
+        'interstitialend(b):completed',
+        'snapback(b)',
+      ]);
+    });
+
+    it('blocks a forward seek inside an active skip-restricted region and holds one past it', () => {
+      const { host, media, session } = setup();
+      const log = recordEvents(session, ['seekblocked', 'snapback', 'interstitialend']);
+      const item = host.addInterstitial(region('a', 10, 10, { restrictions: ['skip'] }));
+
+      media.advance(12);
+
+      expect(session.requestSeek(18)).toBe(12);
+      expect(media.currentTime).toBe(12);
+      media.settle();
+
+      expect(session.requestSeek(50)).toBe(12);
+      media.settle();
+      media.advance(20);
+
+      expect(media.currentTime).toBe(50);
+      expect(item.played).toBe(true);
+      expect(log).toEqual(['seekblocked(a)', 'seekblocked(a)', 'interstitialend(a):completed', 'snapback(a)']);
+    });
+
+    it('lets a backward seek leave an active skip-restricted region', () => {
+      const { host, media, session } = setup();
+      const item = host.addInterstitial(region('a', 10, 10, { restrictions: ['skip'] }));
+
+      media.advance(12);
+
+      expect(session.requestSeek(5)).toBe(5);
+      media.settle();
+
+      expect(item.state).toBe('skipped');
+      expect(item.played).toBe(false);
     });
 
     it('only advises when restrictions are not enforced', () => {
@@ -559,6 +680,22 @@ describe('createAdSession', () => {
 
       expect(time.contentSeekable.length).toBe(1);
       expect(time.contentSeekable.end(0)).toBe(70);
+    });
+
+    it('maps buffered ranges into content time', () => {
+      const { host, media, session } = setup({}, 100);
+
+      host.addInterstitial(region('a', 10, 10));
+      media.bufferedRanges = [
+        [0, 5],
+        [15, 50],
+      ];
+
+      const { contentBuffered } = session.time;
+
+      expect(contentBuffered.length).toBe(2);
+      expect([contentBuffered.start(0), contentBuffered.end(0)]).toEqual([0, 5]);
+      expect([contentBuffered.start(1), contentBuffered.end(1)]).toEqual([10, 40]);
     });
 
     it('leaves inserted regions out of the content clock', () => {
@@ -770,15 +907,25 @@ describe('createAdSession', () => {
       expect(detach).toHaveBeenCalledTimes(1);
     });
 
-    it('closes the active region when the source is emptied', () => {
+    it('closes the active region and clears the schedule when the source is emptied', () => {
       const { host, media, session } = setup();
+      const removed: string[] = [];
       const item = host.addInterstitial(region('a', 10, 10));
+
+      host.addInterstitial(region('b', 40, 10));
+      session.addEventListener('scheduleupdated', (event) =>
+        removed.push(...event.detail.removed.map((region) => region.id))
+      );
 
       media.advance(12);
       media.dispatchEvent(new Event('emptied'));
 
       expect(item.state).toBe('skipped');
       expect(session.schedule.current).toBeNull();
+      expect(session.schedule.items).toEqual([]);
+      expect(removed).toEqual(['a', 'b']);
+      // The new source starts from a plain clock.
+      expect(session.time.contentTimeForStreamTime(50)).toBe(50);
     });
   });
 

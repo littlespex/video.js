@@ -15,7 +15,7 @@ import type { TrackingEvent } from './records';
  * `tracking` is cancelable: `preventDefault()` in a listener stops the session's beacon sender from issuing the
  * request.
  *
- * @experimental
+ * @internal
  */
 export interface AdSessionEventMap {
   // Schedule
@@ -60,8 +60,8 @@ export interface AdSessionEventMap {
   timeupdate: { streamTime: number; contentTime: number; interstitial: Interstitial | null; slot: Slot | null };
 }
 
-/** @experimental */
+/** @internal */
 export type AdSessionEventType = keyof AdSessionEventMap;
 
-/** @experimental */
+/** @internal */
 export type AdSessionEvent<K extends AdSessionEventType = AdSessionEventType> = CustomEvent<AdSessionEventMap[K]>;

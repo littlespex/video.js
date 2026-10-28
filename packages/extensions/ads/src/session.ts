@@ -25,7 +25,7 @@ import { createTimeMapping, type TimeMapping } from './time-mapping';
  * The session owns the clock: it activates and deactivates regions as the playhead crosses their boundaries, the same
  * way a browser drives `VTTCue` enter and exit, and adapters never change playback state.
  *
- * @experimental
+ * @internal
  */
 export interface AdSession extends EventTarget {
   /** The element playing primary content. For `stitched` regions it is also playing the ads. */
@@ -73,7 +73,7 @@ export interface AdSession extends EventTarget {
   ): void;
 }
 
-/** @experimental */
+/** @internal */
 export interface AdSessionInit {
   primaryElement: HTMLMediaElement;
   interstitialPlayer?: InterstitialPlayer | undefined;
@@ -115,7 +115,7 @@ function isCompletion(reason: InterstitialEndReason): boolean {
 /**
  * Create an ad session on a primary media element.
  *
- * @experimental
+ * @internal
  */
 export function createAdSession(init: AdSessionInit): AdSession {
   return new AdSessionImpl(init);
@@ -141,7 +141,7 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
   /** The target of a seek this session issued, so the `seeking` it causes is not enforced a second time. */
   #expectedSeek: number | null = null;
   /** A viewer's seek target held back until the blocking region plays. */
-  #deferredSeek: number | null = null;
+  #deferredSeek: { interstitial: InterstitialImpl; to: number } | null = null;
   #snapback: { interstitial: Interstitial; to: number } | null = null;
   /** A region ended while the playhead stayed inside its span (playout limit), so it must not re-activate until left. */
   #endedInPlace: InterstitialImpl | null = null;
@@ -193,6 +193,8 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
   }
 
   requestSeek(streamTime: number): number {
+    if (this.#destroyed) return streamTime;
+
     const target = this.#enforceSeek(this.primaryElement.currentTime, streamTime);
 
     this.#issueSeek(target);
@@ -415,6 +417,7 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
       { signal }
     );
 
+    // A new source brings its own signaling; nothing of the old schedule, its `played` flags included, carries over.
     listen(
       primary,
       'emptied',
@@ -423,8 +426,14 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
 
         if (current) this.#endInterstitial(current, 'seeked');
 
+        const removed = this.schedule.clear();
+
         this.#deferredSeek = null;
+        this.#snapback = null;
+        this.#endedInPlace = null;
         this.#lastStreamTime = 0;
+
+        if (removed.length > 0) this.#scheduleChanged({ removed });
       },
       { signal }
     );
@@ -578,9 +587,9 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
       this.#emit('scheduleupdated', { added: [], removed: [interstitial], changed: [] });
     }
 
-    if (this.#deferredSeek !== null) {
-      // The held-back seek completes once the blocking region has played; leaving it any other way drops it.
-      if (data.played) this.#snapback = { interstitial, to: this.#deferredSeek };
+    // Only the region that blocked the seek releases the held target; another region ending in between leaves it be.
+    if (this.#deferredSeek?.interstitial === interstitial) {
+      if (data.played) this.#snapback = { interstitial, to: this.#deferredSeek.to };
 
       this.#deferredSeek = null;
     }
@@ -607,45 +616,51 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
     const data = slotData(slot);
     const previous = data.currentTime;
     const current = Math.min(Math.max(0, slotTime), slot.duration);
-    const firstPlay = !interstitialData(slot.interstitial).played;
 
     data.currentTime = current;
 
     // Offsets are due when continuous playback crosses them, never when a seek lands past them.
-    if (!seeked && current > previous) {
-      const dueAt = (offset: number) => previous < offset && offset <= current;
-
-      for (const event of slot.tracking) {
-        const quartile = QUARTILE_TYPES[event.type];
-        const offset = event.offset ?? (quartile === undefined ? null : quartile * slot.duration);
-        if (offset === null || data.fired.has(event) || !dueAt(offset)) continue;
-
-        data.fired.add(event);
-        this.#fireTracking(event, { slot, firstPlay });
-
-        if (event.type === 'progress' || quartile !== undefined) {
-          const fraction = slot.duration > 0 ? offset / slot.duration : 0;
-
-          data.progressFired.add(fraction);
-          this.#emit('slotprogress', { slot, offset, fraction });
-        }
-      }
-
-      // Quartile marks for UI even when the signaling carries no record there.
-      for (const fraction of QUARTILES) {
-        const offset = fraction * slot.duration;
-        if (data.progressFired.has(fraction) || !dueAt(offset)) continue;
-
-        data.progressFired.add(fraction);
-        this.#emit('slotprogress', { slot, offset, fraction });
-      }
-    }
+    if (!seeked) this.#fireDueOffsets(slot, previous, current);
 
     const skippable = this.#isSkippable(slot, current);
 
     if (skippable !== data.skippable) {
       data.skippable = skippable;
       this.#emit('slotskipstatechange', { slot, skippable });
+    }
+  }
+
+  /** Fire the records whose offset playback crossed between `previous` and `current` seconds into the slot. */
+  #fireDueOffsets(slot: SlotImpl, previous: number, current: number): void {
+    if (current <= previous) return;
+
+    const data = slotData(slot);
+    const firstPlay = !interstitialData(slot.interstitial).played;
+    const dueAt = (offset: number) => previous < offset && offset <= current;
+
+    for (const event of slot.tracking) {
+      const quartile = QUARTILE_TYPES[event.type];
+      const offset = event.offset ?? (quartile === undefined ? null : quartile * slot.duration);
+      if (offset === null || data.fired.has(event) || !dueAt(offset)) continue;
+
+      data.fired.add(event);
+      this.#fireTracking(event, { slot, firstPlay });
+
+      if (event.type === 'progress' || quartile !== undefined) {
+        const fraction = slot.duration > 0 ? offset / slot.duration : 0;
+
+        data.progressFired.add(fraction);
+        this.#emit('slotprogress', { slot, offset, fraction });
+      }
+    }
+
+    // Quartile marks for UI even when the signaling carries no record there.
+    for (const fraction of QUARTILES) {
+      const offset = fraction * slot.duration;
+      if (data.progressFired.has(fraction) || !dueAt(offset)) continue;
+
+      data.progressFired.add(fraction);
+      this.#emit('slotprogress', { slot, offset, fraction });
     }
   }
 
@@ -656,7 +671,11 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
     const interstitial = interstitialData(slot.interstitial);
     const firstPlay = !interstitial.played;
 
-    if (reason === 'completed') data.currentTime = slot.duration;
+    if (reason === 'completed') {
+      // The clock ends a slot before ticking it, so offsets in the last window before its end fall due here.
+      this.#fireDueOffsets(slot, data.currentTime, slot.duration);
+      data.currentTime = slot.duration;
+    }
 
     data.state = reason === 'completed' ? 'completed' : reason === 'error' ? 'error' : 'skipped';
 
@@ -687,16 +706,31 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
 
   /** The stream time a seek from `from` to `to` may land on under the navigation rules. */
   #enforceSeek(from: number, to: number): number {
+    const { current } = this.schedule;
+
+    // `skip` keeps the viewer from ending an active break early: a forward seek inside it goes nowhere.
+    if (current && !current.played && current.restrictions.has('skip') && to > from) {
+      this.#emit('seekblocked', { interstitial: current, from, to });
+
+      if (!this.#enforce) return to;
+
+      if (this.#liesPast(current, to)) this.#deferredSeek = { interstitial: current, to };
+
+      return from;
+    }
+
+    // A target exactly at a break's start is a seek into it, which lands there anyway.
     const blocking = this.schedule
       .unplayedBetween(from, to)
-      .find((item) => item.restrictions.has('jump') && item.startTime !== null);
+      .find((item) => item.restrictions.has('jump') && item.startTime !== null && item.startTime < to);
 
     if (blocking) {
       this.#emit('seekblocked', { interstitial: blocking, from, to });
 
       if (!this.#enforce) return to;
 
-      this.#deferredSeek = to;
+      // A target inside the break has nowhere further to go once the break plays; only a target past it is held.
+      if (this.#liesPast(blocking, to)) this.#deferredSeek = { interstitial: blocking, to };
 
       return blocking.startTime!;
     }
@@ -723,11 +757,36 @@ class AdSessionImpl extends EventTarget implements AdSession, InterstitialHooks 
     this.primaryElement.currentTime = streamTime;
   }
 
+  /** Whether `streamTime` lies beyond the span a region occupies on the primary timeline. */
+  #liesPast(region: InterstitialImpl, streamTime: number): boolean {
+    const end =
+      region.insertion === 'stitched'
+        ? this.schedule.effectiveEnd(this.schedule.items.indexOf(region))
+        : region.startTime!;
+
+    return streamTime >= end;
+  }
+
   #flushSnapback(): void {
     const snapback = this.#snapback;
     if (!snapback) return;
 
     this.#snapback = null;
+
+    const { current } = this.schedule;
+
+    // A restricted break that starts where the last one ended takes over the hold instead of being jumped.
+    if (
+      this.#enforce &&
+      current &&
+      !current.played &&
+      (current.restrictions.has('jump') || current.restrictions.has('skip'))
+    ) {
+      if (this.#liesPast(current, snapback.to)) this.#deferredSeek = { interstitial: current, to: snapback.to };
+
+      return;
+    }
+
     this.#emit('snapback', {
       interstitial: snapback.interstitial,
       from: this.primaryElement.currentTime,

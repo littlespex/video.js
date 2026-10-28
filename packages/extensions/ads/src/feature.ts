@@ -12,7 +12,7 @@ import type { AdSession } from './session';
  * would take a new reference on every clock tick during a break and re-render every component that reads any ad field.
  * Analytics data stays on the session, not here.
  *
- * @experimental
+ * @internal
  */
 export interface AdsState {
   /** Whether the playhead is inside an interstitial. */
@@ -138,7 +138,7 @@ const INITIAL: Omit<AdsSourceState, 'skipAd' | 'clickAd' | 'dismissAdPlacement'>
  * and analytics data stay on the session. Compose it alongside `timeFeature`, which skins read for the countdown and
  * marker positions.
  *
- * @experimental
+ * @internal
  */
 export const adsFeature = definePlayerFeature({
   name: 'ads',
@@ -219,11 +219,13 @@ export const adsFeature = definePlayerFeature({
 
     sync();
 
-    const off = ADS_EVENTS.map((type) => listen(session as unknown as EventTarget, type, sync, { signal }));
-
-    signal.addEventListener('abort', () => off.forEach((remove) => remove()), { once: true });
+    for (const type of ADS_EVENTS) listen(session as unknown as EventTarget, type, sync, { signal });
   },
 });
 
-/** Select the ad state (break and slot progress, skip availability, placements, and the timeline markers). */
+/**
+ * Select the ad state (break and slot progress, skip availability, placements, and the timeline markers).
+ *
+ * @internal
+ */
 export const selectAds = createSelector(adsFeature);

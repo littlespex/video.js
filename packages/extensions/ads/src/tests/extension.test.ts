@@ -27,6 +27,10 @@ function videoElement(duration: number): HTMLVideoElement {
     configurable: true,
     value: { length: 1, start: () => 0, end: () => duration },
   });
+  Object.defineProperty(video, 'buffered', {
+    configurable: true,
+    value: { length: 1, start: () => 0, end: () => duration / 2 },
+  });
   Object.defineProperty(video, 'currentTime', {
     configurable: true,
     get: () => currentTime,
@@ -88,6 +92,24 @@ describe('AdsExtension', () => {
     // Seeking to content time 30 lands at stream time 40.
     (override as { currentTime: number }).currentTime = 30;
     expect(video.currentTime).toBe(40);
+  });
+
+  it('maps buffered and seekable into content time through one override object', () => {
+    const adapter = captureAdapter();
+    const extension = new AdsExtension();
+
+    extension.adapters = [adapter];
+
+    const video = videoElement(100);
+
+    extension.attach(target(video));
+    adapter.host!.addInterstitial({ id: 'pre', startTime: 0, duration: 10 });
+
+    const override = extension.mediaOverride!;
+
+    expect(extension.mediaOverride).toBe(override);
+    expect(override.buffered!.end(0)).toBe(40);
+    expect(override.seekable!.end(0)).toBe(90);
   });
 
   it('reports the ad session through the media override', () => {

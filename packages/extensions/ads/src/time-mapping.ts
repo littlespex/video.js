@@ -10,7 +10,7 @@ import type { Interstitial } from './interstitial';
  * program. Stitched durations are removed on VOD only: on live streams content time equals stream time, because the
  * viewer scrubs the DVR window as the stream presents it and there is no program duration to preserve.
  *
- * @experimental
+ * @internal
  */
 export interface TimeMapping {
   readonly streamTime: number;
@@ -21,6 +21,8 @@ export interface TimeMapping {
   streamTimeForContentTime(contentTime: number): number;
   /** Seekable ranges in content time. */
   readonly contentSeekable: TimeRangeLike;
+  /** Buffered ranges in content time. */
+  readonly contentBuffered: TimeRangeLike;
   /** Combined timeline for UI during `inserted` or `replaced` regions: primary plus the active interstitial. */
   readonly integrated: {
     readonly currentTime: number;
@@ -84,6 +86,16 @@ export function createTimeMapping(source: TimeMappingSource): TimeMapping {
     return contentTime + offset;
   };
 
+  const toContentRanges = (ranges: TimeRangeLike): TimeRangeLike => {
+    const mapped: [number, number][] = [];
+
+    for (let index = 0; index < ranges.length; index++) {
+      mapped.push([contentTimeForStreamTime(ranges.start(index)), contentTimeForStreamTime(ranges.end(index))]);
+    }
+
+    return createRanges(mapped);
+  };
+
   const mapping: TimeMapping = {
     get streamTime() {
       return source.primary.currentTime;
@@ -108,14 +120,10 @@ export function createTimeMapping(source: TimeMappingSource): TimeMapping {
     contentTimeForStreamTime,
     streamTimeForContentTime,
     get contentSeekable() {
-      const { seekable } = source.primary;
-      const ranges: [number, number][] = [];
-
-      for (let index = 0; index < seekable.length; index++) {
-        ranges.push([contentTimeForStreamTime(seekable.start(index)), contentTimeForStreamTime(seekable.end(index))]);
-      }
-
-      return createRanges(ranges);
+      return toContentRanges(source.primary.seekable);
+    },
+    get contentBuffered() {
+      return toContentRanges(source.primary.buffered);
     },
     get integrated() {
       const { primary } = source;

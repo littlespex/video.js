@@ -10,7 +10,7 @@ import type { AdSession } from './session';
  * Performs the HTTP side of a due {@link TrackingEvent}. Set one on the session, or leave `session.beacons` null and
  * handle `tracking` events yourself.
  *
- * @experimental
+ * @internal
  */
 export interface BeaconSender {
   /** Called once per due record. Implementations perform VAST macro replacement and issue the requests. */
@@ -20,7 +20,7 @@ export interface BeaconSender {
 /**
  * Where a tracking record fell due.
  *
- * @experimental
+ * @internal
  */
 export interface TrackingContext {
   readonly session: AdSession;
@@ -32,10 +32,15 @@ export interface TrackingContext {
   readonly firstPlay: boolean;
 }
 
-/** @experimental */
+/** @internal */
 export interface DefaultBeaconSenderOptions {
   /** Issues one request. Defaults to a `no-cors`, `keepalive` `fetch`, falling back to an image request. */
   request?: ((url: string) => void) | undefined;
+  /**
+   * Whether to send records that fall due while a region plays again (`context.firstPlay === false`). Defaults to
+   * `false`: a replayed break counts once for impressions and quartiles. The `tracking` event still fires for them.
+   */
+  replays?: boolean | undefined;
 }
 
 const MACRO_PATTERN = /\[(CACHEBUSTING|TIMESTAMP|CONTENTPLAYHEAD|MEDIAPLAYHEAD|ADPLAYHEAD|ASSETURI)\]/g;
@@ -64,16 +69,20 @@ function defaultRequest(url: string): void {
  * Replaces the VAST macros a player can fill without an ad server (`[CACHEBUSTING]`, `[TIMESTAMP]`,
  * `[CONTENTPLAYHEAD]`, `[MEDIAPLAYHEAD]`, `[ADPLAYHEAD]`, `[ASSETURI]`) and issues one request per URL.
  *
- * @experimental
+ * @internal
  */
 export class DefaultBeaconSender implements BeaconSender {
   readonly #request: (url: string) => void;
+  readonly #replays: boolean;
 
   constructor(options: DefaultBeaconSenderOptions = {}) {
     this.#request = options.request ?? defaultRequest;
+    this.#replays = options.replays ?? false;
   }
 
   send(event: TrackingEvent, context: TrackingContext): void {
+    if (!context.firstPlay && !this.#replays) return;
+
     for (const url of event.urls) {
       this.#request(DefaultBeaconSender.replaceMacros(url, context));
     }

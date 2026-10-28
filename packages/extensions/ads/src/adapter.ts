@@ -12,7 +12,7 @@ import type { AdSession } from './session';
  * Multiple adapters may attach to one session: an SVTA adapter for stitched linear regions plus a pause-ad adapter for
  * placements is the expected pairing.
  *
- * @experimental
+ * @internal
  */
 export interface AdAdapter {
   readonly name: string;
@@ -23,7 +23,7 @@ export interface AdAdapter {
 /**
  * How an adapter writes into a session.
  *
- * @experimental
+ * @internal
  */
 export interface AdapterHost {
   readonly session: AdSession;
@@ -52,7 +52,7 @@ export interface AdapterHost {
  * reference implementation uses a second `HTMLMediaElement`. Dispatches `timeupdate`, `ended`, `error` and `canplay` as
  * `CustomEvent`s.
  *
- * @experimental
+ * @internal
  */
 export interface InterstitialPlayer extends EventTarget {
   /** Prepare the first slot's media. May be called before the region starts for preloading. */

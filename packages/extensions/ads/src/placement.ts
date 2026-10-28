@@ -6,7 +6,7 @@ import type { AdIdentifier, MediaReference, TrackingEvent, Verification } from '
 /**
  * Asset metadata for a placement creative.
  *
- * @experimental
+ * @internal
  */
 export interface PlacementCreative {
   media: MediaReference[];
@@ -24,7 +24,7 @@ export interface PlacementCreative {
 /**
  * Percentage insets (0-100) from the player edges.
  *
- * @experimental
+ * @internal
  */
 export interface Viewport {
   top: number;
@@ -36,7 +36,7 @@ export interface Viewport {
 /**
  * Where the ad and the content render while a placement is active.
  *
- * @experimental
+ * @internal
  */
 export interface PlacementLayout {
   /** Where the creative renders. `null` for menu, in-scene and companion placements rendered outside the player. */
@@ -47,7 +47,7 @@ export interface PlacementLayout {
   transitionDuration: number;
 }
 
-/** @experimental */
+/** @internal */
 export interface QRCodeInfo {
   scanUrl: string;
   isDynamic: boolean;
@@ -55,7 +55,7 @@ export interface QRCodeInfo {
   position: { x: number; y: number; width: number; height: number } | null;
 }
 
-/** @experimental */
+/** @internal */
 export interface AdInteractivity {
   framework: 'simid' | 'custom' | null;
   simidUrl: string | null;
@@ -67,7 +67,7 @@ export interface AdInteractivity {
  * An ad experience that is not an interstitial: a pause ad, overlay, squeezeback, menu tile, screensaver, in-scene
  * composite or companion. `timeline` placements follow the session's clock; every other trigger is adapter-driven.
  *
- * @experimental
+ * @internal
  */
 export interface AdPlacement {
   readonly id: string;
@@ -112,7 +112,7 @@ export interface AdPlacement {
 /**
  * Every placement known to the session. Always present on the session; empty when no placement adapter is attached.
  *
- * @experimental
+ * @internal
  */
 export interface AdPlacements {
   readonly items: ReadonlyArray<AdPlacement>;
@@ -125,7 +125,7 @@ export interface AdPlacements {
 /**
  * What an adapter supplies to create a placement.
  *
- * @experimental
+ * @internal
  */
 export interface PlacementInit {
   id: string;
@@ -148,7 +148,7 @@ export interface PlacementInit {
   metadata?: Record<string, unknown> | undefined;
 }
 
-/** @experimental */
+/** @internal */
 export type PlacementPatch = Partial<Omit<PlacementInit, 'id' | 'kind' | 'trigger'>>;
 
 const ACTIVE_STATES: ReadonlySet<PlacementState> = new Set(['activating', 'active', 'deactivating']);

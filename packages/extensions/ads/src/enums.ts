@@ -7,7 +7,7 @@
  * - `inserted`: primary pauses at `startTime`, separate media plays, primary resumes at `startTime + resumeOffset`.
  * - `replaced`: separate media plays in place of the primary span `[startTime, startTime + resumeOffset)`.
  *
- * @experimental
+ * @internal
  */
 export type InsertionMode = 'stitched' | 'inserted' | 'replaced';
 
@@ -15,21 +15,21 @@ export type InsertionMode = 'stitched' | 'inserted' | 'replaced';
  * Where an interstitial sits relative to primary content. Play-once semantics are a separate boolean, `playOnce`,
  * because they combine with any position.
  *
- * @experimental
+ * @internal
  */
 export type CuePosition = 'pre' | 'mid' | 'post';
 
 /**
  * UI hint for a progress bar: draw a marker at `startTime` (`point`) or a span of `duration` (`range`).
  *
- * @experimental
+ * @internal
  */
 export type TimelineOccupancy = 'point' | 'range';
 
 /**
  * UI hint for a progress bar: visually distinct from content (`highlight`) or drawn the same as content (`primary`).
  *
- * @experimental
+ * @internal
  */
 export type TimelineStyle = 'highlight' | 'primary';
 
@@ -40,7 +40,7 @@ export type TimelineStyle = 'highlight' | 'primary';
  * - `empty` and `error`: for `inserted` and `replaced` the player skips the region; for `stitched` it plays with no slot
  *   metadata.
  *
- * @experimental
+ * @internal
  */
 export type ResolutionState = 'unresolved' | 'resolving' | 'resolved' | 'empty' | 'error';
 
@@ -48,11 +48,11 @@ export type ResolutionState = 'unresolved' | 'resolving' | 'resolved' | 'empty' 
  * Playback state of an interstitial. There are no transitional states: a region is active from the moment the clock
  * enters it, whether or not its slots are resolved.
  *
- * @experimental
+ * @internal
  */
 export type InterstitialState = 'scheduled' | 'active' | 'completed' | 'skipped' | 'error';
 
-/** @experimental */
+/** @internal */
 export type SlotState = 'pending' | 'active' | 'completed' | 'skipped' | 'error';
 
 /**
@@ -61,7 +61,7 @@ export type SlotState = 'pending' | 'active' | 'completed' | 'skipped' | 'error'
  *   `X-RESTRICT=JUMP`).
  * - `rate`: playback rate must be 1.0 for the interstitial to advance.
  *
- * @experimental
+ * @internal
  */
 export type NavigationRestriction = 'skip' | 'jump' | 'rate';
 
@@ -70,7 +70,7 @@ export type NavigationRestriction = 'skip' | 'jump' | 'rate';
  * `thirdQuartile` are accepted for VAST compatibility and treated as `progress` at 25, 50 and 75 percent of the slot
  * duration when no offset is given.
  *
- * @experimental
+ * @internal
  */
 export type TrackingEventType =
   | 'clickTracking'
@@ -96,14 +96,14 @@ export type TrackingEventType =
 /**
  * The IAB CTV non-linear formats plus VAST companions.
  *
- * @experimental
+ * @internal
  */
 export type PlacementKind = 'pause' | 'screensaver' | 'menu' | 'overlay' | 'squeezeback' | 'inScene' | 'companion';
 
 /**
  * Who drives a placement's lifecycle: the session's clock (`timeline`) or the adapter (every other trigger).
  *
- * @experimental
+ * @internal
  */
 export type PlacementTrigger = 'timeline' | 'userAction' | 'deviceState' | 'programmatic' | 'composited';
 
@@ -111,11 +111,11 @@ export type PlacementTrigger = 'timeline' | 'userAction' | 'deviceState' | 'prog
  * The transitional states survive here because squeezeback resizing and overlay fades are real intervals UI code needs
  * to know about.
  *
- * @experimental
+ * @internal
  */
 export type PlacementState = 'scheduled' | 'activating' | 'active' | 'deactivating' | 'completed' | 'error';
 
-/** @experimental */
+/** @internal */
 export type DismissReason =
   | 'completed'
   | 'viewerDismissed'
@@ -126,19 +126,19 @@ export type DismissReason =
   | 'skipped'
   | 'replaced';
 
-/** @experimental */
+/** @internal */
 export type AudioPolicy = 'required' | 'optional' | 'none';
 
 /**
  * Why an interstitial left the `active` state.
  *
- * @experimental
+ * @internal
  */
 export type InterstitialEndReason = 'completed' | 'skipped' | 'seeked' | 'playoutLimit' | 'error';
 
 /**
  * Why a slot left the `active` state.
  *
- * @experimental
+ * @internal
  */
 export type SlotEndReason = 'completed' | 'skipped' | 'seeked' | 'error';
