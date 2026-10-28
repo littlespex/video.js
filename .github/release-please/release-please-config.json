@@ -11,6 +11,7 @@
       "type": "linked-versions",
       "groupName": "videojs",
       "components": [
+        "@videojs/ads",
         "@videojs/cdn",
         "@videojs/cli",
         "@videojs/cloudflare-video",
@@ -31,8 +32,8 @@
         "@videojs/react",
         "@videojs/shaka-video",
         "@videojs/skins",
-        "@videojs/spf",
         "@videojs/soundcloud-audio",
+        "@videojs/spf",
         "@videojs/spotify-audio",
         "@videojs/store",
         "@videojs/tiktok-video",
@@ -46,6 +47,9 @@
     }
   ],
   "packages": {
+    "packages/extensions/ads": {
+      "component": "@videojs/ads"
+    },
     "packages/cdn": {
       "component": "@videojs/cdn"
     },
@@ -94,6 +98,9 @@
     "packages/adapters/native-hls-video": {
       "component": "@videojs/native-hls-video"
     },
+    "packages/adapters/playerjs-video": {
+      "component": "@videojs/playerjs-video"
+    },
     "packages/react": {
       "component": "@videojs/react"
     },
@@ -103,17 +110,14 @@
     "packages/skins": {
       "component": "@videojs/skins"
     },
-    "packages/spf": {
-      "component": "@videojs/spf"
-    },
     "packages/adapters/soundcloud-audio": {
       "component": "@videojs/soundcloud-audio"
     },
+    "packages/spf": {
+      "component": "@videojs/spf"
+    },
     "packages/adapters/spotify-audio": {
       "component": "@videojs/spotify-audio"
-    },
-    "packages/adapters/playerjs-video": {
-      "component": "@videojs/playerjs-video"
     },
     "packages/store": {
       "component": "@videojs/store"
@@ -127,6 +131,9 @@
     "packages/utils": {
       "component": "@videojs/utils"
     },
+    "packages/video.js": {
+      "component": "video.js"
+    },
     "packages/adapters/vimeo-video": {
       "component": "@videojs/vimeo-video"
     },
@@ -135,9 +142,6 @@
     },
     "packages/adapters/youtube-video": {
       "component": "@videojs/youtube-video"
-    },
-    "packages/video.js": {
-      "component": "video.js"
     }
   }
 }

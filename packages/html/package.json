@@ -179,6 +179,7 @@
     "@videojs/utils": "workspace:*"
   },
   "devDependencies": {
+    "@videojs/ads": "workspace:*",
     "@videojs/cloudflare-video": "workspace:*",
     "@videojs/dash-video": "workspace:*",
     "@videojs/google-cast": "workspace:*",
@@ -201,6 +202,7 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
+    "@videojs/ads": "workspace:*",
     "@videojs/cloudflare-video": "workspace:*",
     "@videojs/dash-video": "workspace:*",
     "@videojs/google-cast": "workspace:*",
@@ -219,6 +221,9 @@
     "@videojs/youtube-video": "workspace:*"
   },
   "peerDependenciesMeta": {
+    "@videojs/ads": {
+      "optional": true
+    },
     "@videojs/cloudflare-video": {
       "optional": true
     },

@@ -16,6 +16,7 @@ export default defineComponent({
     Thumb: defineComponent(),
     Chapters: defineComponent(),
     ChapterTitle: defineComponent(),
+    Markers: defineComponent(),
     Preview: defineComponent<SliderPreviewProps>(),
     Value: defineComponent<SliderValueProps>(),
   },

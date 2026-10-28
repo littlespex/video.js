@@ -1,5 +1,7 @@
 import { createSelector } from '@videojs/store';
 
+import type { TimelineMarkersState } from '../../core/ui/time-slider/markers/core';
+import { definePlayerFeature } from '../feature';
 import { audioTrackFeature } from './features/audio-track';
 import { bufferFeature } from './features/buffer';
 import { controlsFeature } from './features/controls';
@@ -58,3 +60,22 @@ export const selectTextTrack = createSelector(textTrackFeature);
 export const selectTime = createSelector(timeFeature);
 /** Select the volume state (volume, muted, setVolume, setMuted). */
 export const selectVolume = createSelector(volumeFeature);
+
+/**
+ * The generic timeline-markers surface. A player gets the `timelineMarkers` key from whichever feature contributes it
+ * (the ads feature today); this empty-default slice anchors {@link selectTimelineMarkers} so the selector is typed and
+ * reads the key wherever it comes from. It is not part of any preset, so it never collides with a contributing
+ * feature.
+ */
+const timelineMarkersAnchor = definePlayerFeature({
+  name: 'timelineMarkers',
+  state: (): TimelineMarkersState => ({ timelineMarkers: [] }),
+});
+
+/**
+ * Select the generic timeline markers any feature may contribute (ad breaks today). The result is `undefined` when no
+ * feature contributes markers, so a slider's markers part reads it with a fallback and renders nothing.
+ *
+ * @internal
+ */
+export const selectTimelineMarkers = createSelector(timelineMarkersAnchor);
