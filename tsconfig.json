@@ -33,6 +33,7 @@
     { "path": "packages/adapters/wistia-video" },
     { "path": "packages/adapters/youtube-video" },
 
+    { "path": "packages/extensions/ads" },
     { "path": "packages/extensions/google-cast" },
     { "path": "packages/extensions/mux-data" },
 
